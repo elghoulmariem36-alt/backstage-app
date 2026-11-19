@@ -1,0 +1,67 @@
+
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: portfolio-nextjs-template
+  title: Portfolio Next.js
+  description: Génération automatique d'un Portfolio Next.js avec Docker
+
+spec:
+  owner: user:default/guest
+  type: website
+
+  parameters:
+    - title: Informations du projet
+      required:
+        - name
+        - owner
+      properties:
+        name:
+          title: Nom du projet
+          type: string
+          default: portfolio-nextjs
+          pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+        description:
+          title: Description
+          type: string
+          default: Mon Portfolio DevOps et Cloud
+        owner:
+          title: GitHub Owner
+          type: string
+          default: elghoulmariem36-alt
+
+  steps:
+    - id: fetch
+      name: Générer le projet Next.js
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+
+    - id: publish
+      name: Publier sur GitHub
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=${{ parameters.owner }}&repo=${{ parameters.name }}
+        description: ${{ parameters.description }}
+        defaultBranch: main
+        repoVisibility: private
+
+    - id: register
+      name: Enregistrer dans le catalogue
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Dépôt GitHub
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Ouvrir le composant
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
+
